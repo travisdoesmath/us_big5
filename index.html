@@ -25,13 +25,9 @@ var svg = d3.select("svg");
 var path = d3.geoPath();
 
 let mapPromise = d3.json("https://d3js.org/us-10m.v1.json"),
-  agrPromise = d3.csv('usa_fips_big5_agr.csv'),
-  conPromise = d3.csv('usa_fips_big5_con.csv'),
-  extPromise = d3.csv('usa_fips_big5_ext.csv'),
-  neuPromise = d3.csv('usa_fips_big5_neu.csv'),
-  opePromise = d3.csv('usa_fips_big5_ope.csv')
-    
-let promises = [mapPromise, agrPromise, conPromise, extPromise, neuPromise, opePromise = d3.csv('usa_fips_big5_ope.csv')]
+  big5Promise = d3.csv('big5.csv')
+
+let promises = [mapPromise, big5Promise]
 
 var globalUs;
 
@@ -40,13 +36,21 @@ Promise.all(promises).then(function(values) {
   counties = topojson.feature(us, us.objects.counties).features;
   globalUs = us;
   console.log(us);
-  big5 = values.slice(1);
-  counties.forEach(function(d1) {
-    agrIndex = big5[0].map(d => d.fips_code).indexOf(d1.id)
-    if(agrIndex !== -1) {
-      d1.properties.agr = +big5[0][agrIndex]['big5_agr_nointerp']
+  big5 = values[1];
+  counties.forEach(function(d) {
+    big5Index = big5.map(d1 => +d1.fips_code).indexOf(+d.id)
+    if(big5Index !== -1) {
+      d.properties.agr = +big5[big5Index]['agr']
+      d.properties.con = +big5[big5Index]['con']
+      d.properties.ext = +big5[big5Index]['ext']
+      d.properties.neu = +big5[big5Index]['neu']
+      d.properties.ope = +big5[big5Index]['ope']
     } else {
-      d1.properties.agr = undefined;
+      d.properties.agr = undefined;
+      d.properties.con = undefined;
+      d.properties.ext = undefined;
+      d.properties.neu = undefined;
+      d.properties.ope = undefined;
     }
   })
   console.log(big5);
@@ -60,7 +64,7 @@ color = d3.scaleSequential(d3.interpolateRdBu).domain([-2,2])
     .selectAll("path")
     .data(counties)
     .enter().append("path")
-      .attr("fill", function(d) { console.log(color(d.properties.agr)); return color(d.properties.agr); })
+      .attr("fill", function(d) { return color(d.properties.ope); })
       .attr("d", path);
 
   svg.append("path")
