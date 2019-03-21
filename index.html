@@ -17,6 +17,10 @@
   border-radius: 10px;
 }
 
+.bar {
+  fill: steelblue;
+}
+
 .county-borders {
   fill: none;
   stroke: #fff;
@@ -58,12 +62,22 @@
 <script>
 
 var tooltip = d3.select("body").append("div")
-  .style("display", "none");
+  .style("display", "none")          
+  .classed("tooltip", true)
+
+
+var tooltipHeader = tooltip.append("h3");
+tooltip.append("hr")
+var tooltipSvg = tooltip.append("svg")
+    .attr("width", 100)
+    .attr("height", 100);
 
 var svg = d3.select("svg")
   .style("position", "absolute");
 
 var g = svg.append("g")
+
+var barScale = d3.scaleLinear().domain([-2,2]).range([-50,50])
 
 zoomed = function() {
   g
@@ -110,12 +124,6 @@ Promise.all(promises).then(function(values) {
       d.properties.ext = +big5[big5Index]['ext']
       d.properties.neu = +big5[big5Index]['neu']
       d.properties.ope = +big5[big5Index]['ope']
-    } else {
-      d.properties.agr = undefined;
-      d.properties.con = undefined;
-      d.properties.ext = undefined;
-      d.properties.neu = undefined;
-      d.properties.ope = undefined;
     }
   })
 
@@ -134,13 +142,21 @@ Promise.all(promises).then(function(values) {
       .attr("fill", function(d) { return color(d.properties[trait]); })
       .on("mouseover", function(d) {
         tooltip.style("display", "block")
-          .classed("tooltip", true)
-          .html(`<h3>${d.properties.name}, ${d.properties.state}</h3>`)
           .style("left", `${d3.event.pageX}px`)
-          .style("top", `${d3.event.pageY - 50}px`)
+          .style("top", `${d3.event.pageY - 175}px`)
+        tooltipHeader.text(`${d.properties.name}, ${d.properties.state}`);
+        tooltipSvg.html("");
+        ["agr","con","ext","con","neu"].forEach(function(trait, i) {
+          tooltipSvg.append("rect")
+            .attr("x", 50 + barScale(Math.min(0,d.properties[trait])))
+            .attr("y", i*20)
+            .attr("width", barScale(Math.abs(d.properties[trait])))
+            .attr("height", 20)
+            .classed("bar", true)
+        })
       })
       .on("mouseout", function(d) {
-        tooltip.style("display", "none")
+        // tooltip.style("display", "none")
       })
 
     countiesd3
