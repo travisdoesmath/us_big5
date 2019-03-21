@@ -2,7 +2,7 @@
 <style>
 
 .counties{
-  fill: none;
+  /* fill: none; */
 }
 
 .county-borders {
@@ -23,8 +23,24 @@
   pointer-events: none;
 }
 
+
+.nation-borders {
+  fill: none;
+  stroke: #AAA;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
 </style>
-<svg width="960" height="600"></svg>
+<select style="display:block" id='trait'>
+  <option value="agr">Agreeableness</option>
+  <option value="con">Conscientiousness</option>
+  <option value="ext">Extraversion</option>
+  <option value="neu">Neuroticism</option>
+  <option value="ope">Openness</option>
+</select>
+<svg width="960" height="600" style="display:block"></svg>
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="https://d3js.org/topojson.v2.min.js"></script>
 <script>
@@ -65,29 +81,52 @@ Promise.all(promises).then(function(values) {
   })
   console.log(big5);
 
+  color = d3.scaleSequential(d3.interpolateRdBu).domain([-2,2])
 
-  
-color = d3.scaleSequential(d3.interpolateRdBu).domain([-2,2])
+  var update = function(trait) {
+    console.log("sent trait: ", trait);
 
-  svg.append("g")
-      .attr("class", "counties")
-    .selectAll("path")
-    .data(counties)
-    .enter().append("path")
-      .attr("fill", function(d) { return color(d.properties.con); })
-      .attr("d", path);
+    // var countiesGroup = svg.selectAll(".counties").data([0]).enter().append("g")
+    //   .attr("class", "counties")
 
-  svg.append("path")
-      .attr("class", "county-borders")
-      .attr("d", path(topojson.mesh(us, us.objects.counties, function(a, b) { return a !== b; })));
+    var countiesd3 = svg.selectAll(".counties")
+    // .data(counties, d => d.id + d.properties[trait])
+      .data(counties)
 
-  svg.append("path")
-      .attr("class", "state-borders")
-      .attr("d", path(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; })));
+    countiesd3
+      .enter()
+      .append("path")
+      .attr("class","counties")
+      .attr("d", path)
+      .attr("fill", function(d) { console.log(color(d.properties[trait])); return color(d.properties[trait]); })
 
-  svg.append("path")
-      .attr("class", "state-borders")
-      .attr("d", path(topojson.mesh(us, us.objects.nation)));
+    countiesd3
+      .transition()
+      .duration(1000)
+      .attr("fill", function(d) { return color(d.properties[trait]); })
+
+    svg.selectAll('.county-borders').data([0]).enter().append("path")
+        .attr("class", "county-borders")
+        .attr("d", path(topojson.mesh(us, us.objects.counties, function(a, b) { return a !== b; })));
+
+    svg.selectAll('.state-borders').data([0]).enter().append("path")
+        .attr("class", "state-borders")
+        .attr("d", path(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; })));
+
+    svg.selectAll('.nation-borders').data([0]).enter().append("path")
+        .attr("class", "nation-borders")
+        .attr("d", path(topojson.mesh(us, us.objects.nation)));
+
+    }
+
+    var trait_select = d3.select("#trait")
+    trait_select.on("change", function(d) {
+      console.log(d3.select(this).property("value"));
+      update(d3.select(this).property("value"));
+    });
+
+  update(d3.select("#trait").property("value"));
+
 
 });
 
