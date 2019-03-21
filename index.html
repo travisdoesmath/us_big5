@@ -5,6 +5,19 @@
   /* fill: none; */
 }
 
+.tooltip {
+  display: none;
+  position: absolute;
+  /* width: 80px;
+  height: 30px; */
+  padding: 2px;
+  font: 12px sans-serif;
+  text-align: center;
+  background: white;
+  border: 1px solid black;
+  border-radius: 10px;
+}
+
 .county-borders {
   fill: none;
   stroke: #fff;
@@ -16,7 +29,7 @@
 
 .state-borders {
   fill: none;
-  stroke: #AAA;
+  stroke: #000;
   stroke-width: 1px;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -26,8 +39,8 @@
 
 .nation-borders {
   fill: none;
-  stroke: #AAA;
-  stroke-width: 2px;
+  stroke: #444;
+  stroke-width: 1px;
   stroke-linejoin: round;
   stroke-linecap: round;
   pointer-events: none;
@@ -45,7 +58,23 @@
 <script src="https://d3js.org/topojson.v2.min.js"></script>
 <script>
 
-var svg = d3.select("svg");
+var tooltip = d3.select("body").append("div")
+  .style("display", "none");
+
+var svg = d3.select("svg")
+  .style("position", "absolute");
+
+var g = svg.append("g")
+
+zoomed = function() {
+
+}
+
+var zoom = d3.zoom()
+  .scaleExtent([1,40])
+  .on("zoom", zoomed);
+
+
 
 var path = d3.geoPath();
 
@@ -60,12 +89,12 @@ Promise.all(promises).then(function(values) {
   us = values[0]
   counties = topojson.feature(us, us.objects.counties).features;
   globalUs = us;
-  console.log(us);
   big5 = values[1];
   counties.forEach(function(d) {
-    // big5Index = big5.map(d1 => +d1.fips_code).indexOf(+d.id)
     big5Index = big5.map(d1 => +d1.FIPS).indexOf(+d.id)
     if(big5Index !== -1) {
+      d.properties.name = big5[big5Index]['COUNTY']
+      d.properties.state = big5[big5Index]['STATE']
       d.properties.agr = +big5[big5Index]['agr']
       d.properties.con = +big5[big5Index]['con']
       d.properties.ext = +big5[big5Index]['ext']
@@ -79,18 +108,12 @@ Promise.all(promises).then(function(values) {
       d.properties.ope = undefined;
     }
   })
-  console.log(big5);
-
-  color = d3.scaleSequential(d3.interpolateRdBu).domain([-2,2])
 
   var update = function(trait) {
-    console.log("sent trait: ", trait);
+  
+    color = d3.scaleSequential(d3.interpolateBlues).domain(d3.extent(counties.map(d => d.properties[trait])))
 
-    // var countiesGroup = svg.selectAll(".counties").data([0]).enter().append("g")
-    //   .attr("class", "counties")
-
-    var countiesd3 = svg.selectAll(".counties")
-    // .data(counties, d => d.id + d.properties[trait])
+    var countiesd3 = g.selectAll(".counties")
       .data(counties)
 
     countiesd3
@@ -98,22 +121,32 @@ Promise.all(promises).then(function(values) {
       .append("path")
       .attr("class","counties")
       .attr("d", path)
-      .attr("fill", function(d) { console.log(color(d.properties[trait])); return color(d.properties[trait]); })
+      .attr("fill", function(d) { return color(d.properties[trait]); })
+      .on("mouseover", function(d) {
+        tooltip.style("display", "block")
+          .classed("tooltip", true)
+          .html(`<h3>${d.properties.name}, ${d.properties.state}</h3>`)
+          .style("left", `${d3.event.pageX}px`)
+          .style("top", `${d3.event.pageY - 50}px`)
+      })
+      .on("mouseout", function(d) {
+        tooltip.style("display", "none")
+      })
 
     countiesd3
       .transition()
       .duration(1000)
       .attr("fill", function(d) { return color(d.properties[trait]); })
 
-    svg.selectAll('.county-borders').data([0]).enter().append("path")
+    g.selectAll('.county-borders').data([0]).enter().append("path")
         .attr("class", "county-borders")
         .attr("d", path(topojson.mesh(us, us.objects.counties, function(a, b) { return a !== b; })));
 
-    svg.selectAll('.state-borders').data([0]).enter().append("path")
+    g.selectAll('.state-borders').data([0]).enter().append("path")
         .attr("class", "state-borders")
         .attr("d", path(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; })));
 
-    svg.selectAll('.nation-borders').data([0]).enter().append("path")
+    g.selectAll('.nation-borders').data([0]).enter().append("path")
         .attr("class", "nation-borders")
         .attr("d", path(topojson.mesh(us, us.objects.nation)));
 
@@ -121,7 +154,6 @@ Promise.all(promises).then(function(values) {
 
     var trait_select = d3.select("#trait")
     trait_select.on("change", function(d) {
-      console.log(d3.select(this).property("value"));
       update(d3.select(this).property("value"));
     });
 
