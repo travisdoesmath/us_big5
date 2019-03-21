@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <style>
 
-.counties{
-  /* fill: none; */
+.county{
 }
 
 .tooltip {
@@ -21,7 +20,7 @@
 .county-borders {
   fill: none;
   stroke: #fff;
-  stroke-width: 0.5px;
+  /* stroke-width: 0.5px; */
   stroke-linejoin: round;
   stroke-linecap: round;
   pointer-events: none;
@@ -30,7 +29,7 @@
 .state-borders {
   fill: none;
   stroke: #000;
-  stroke-width: 1px;
+  /* stroke-width: 1px; */
   stroke-linejoin: round;
   stroke-linecap: round;
   pointer-events: none;
@@ -40,7 +39,7 @@
 .nation-borders {
   fill: none;
   stroke: #444;
-  stroke-width: 1px;
+  /* stroke-width: 1px; */
   stroke-linejoin: round;
   stroke-linecap: round;
   pointer-events: none;
@@ -67,12 +66,23 @@ var svg = d3.select("svg")
 var g = svg.append("g")
 
 zoomed = function() {
+  g
+  .attr('transform', d3.event.transform);
 
+  scale = d3.event.transform.k;
+  g.selectAll(".county-borders")
+    .attr("stroke-width", 0.5/scale);
+  g.selectAll(".state-borders")
+    .attr("stroke-width", 1/scale);
+  g.selectAll(".nation-borders")
+    .attr("stroke-width", 1/scale)
 }
 
 var zoom = d3.zoom()
   .scaleExtent([1,40])
   .on("zoom", zoomed);
+
+svg.call(zoom);
 
 
 
@@ -113,13 +123,13 @@ Promise.all(promises).then(function(values) {
   
     color = d3.scaleSequential(d3.interpolateBlues).domain(d3.extent(counties.map(d => d.properties[trait])))
 
-    var countiesd3 = g.selectAll(".counties")
+    var countiesd3 = g.selectAll(".county")
       .data(counties)
 
     countiesd3
       .enter()
       .append("path")
-      .attr("class","counties")
+      .attr("class","county")
       .attr("d", path)
       .attr("fill", function(d) { return color(d.properties[trait]); })
       .on("mouseover", function(d) {
@@ -135,11 +145,12 @@ Promise.all(promises).then(function(values) {
 
     countiesd3
       .transition()
-      .duration(1000)
+      .duration(750)
       .attr("fill", function(d) { return color(d.properties[trait]); })
 
     g.selectAll('.county-borders').data([0]).enter().append("path")
         .attr("class", "county-borders")
+        .attr("stroke-width", "0.5")
         .attr("d", path(topojson.mesh(us, us.objects.counties, function(a, b) { return a !== b; })));
 
     g.selectAll('.state-borders').data([0]).enter().append("path")
